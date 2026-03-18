@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sonora</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a25;--bg4:#242433;--green:#1db954;--border:rgba(255,255,255,.07);--g:#b3b3b3;--d:#535353}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:#fff;height:100vh;overflow:hidden;display:grid;grid-template-rows:1fr 90px;grid-template-columns:240px 1fr;grid-template-areas:"side main""player player"}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* SIDEBAR */
+#side{grid-area:side;background:#000;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
+.logo{padding:22px 16px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-dot{width:34px;height:34px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-dot svg{width:18px;height:18px;fill:#000}
+.logo-text{font-size:20px;font-weight:700;letter-spacing:-.5px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:9px 16px;cursor:pointer;color:var(--g);font-weight:600;font-size:14px;border-radius:6px;margin:2px 8px;transition:all .15s}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.04)}
+.nav-item.active{color:#fff;background:rgba(255,255,255,.06)}
+.nav-item svg{width:18px;height:18px;fill:currentColor;flex-shrink:0}
+.sep{height:1px;background:var(--border);margin:8px 16px;flex-shrink:0}
+.lib-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;flex-shrink:0}
+.lib-label{font-size:10px;font-weight:700;color:var(--d);text-transform:uppercase;letter-spacing:1px}
+.csv-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--green);color:#000;border:none;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.csv-btn svg{width:11px;height:11px;fill:#000}
+#lib-list{flex:1;overflow-y:auto;padding:2px 8px 8px}
+.lib-item{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:6px;cursor:pointer;transition:background .1s}
+.lib-item:hover{background:rgba(255,255,255,.05)}
+.lib-item.active{background:rgba(255,255,255,.07)}
+.lib-thumb{width:34px;height:34px;border-radius:4px;background:var(--bg4);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px}
+.lib-thumb img{width:100%;height:100%;object-fit:cover}
+.lib-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-artist{font-size:11px;color:var(--g)}
+.lib-empty{padding:12px 16px;font-size:12px;color:var(--d)}
+
+/* MAIN */
+#main{grid-area:main;overflow-y:auto;background:linear-gradient(180deg,#18291c 0%,var(--bg) 360px)}
+.top-bar{position:sticky;top:0;z-index:9;background:rgba(10,10,15,.9);backdrop-filter:blur(20px);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.search-box{display:flex;align-items:center;gap:9px;background:var(--bg2);border:1px solid var(--border);border-radius:22px;padding:8px 14px;width:280px;transition:border-color .15s}
+.search-box:focus-within{border-color:var(--green)}
+.search-box svg{width:14px;height:14px;fill:var(--d);flex-shrink:0}
+.search-box input{background:none;border:none;outline:none;color:#fff;font-family:inherit;font-size:14px;width:100%}
+.search-box input::placeholder{color:var(--d)}
+.track-count{font-size:12px;color:var(--d)}
+.content{padding:20px 28px}
+.tabs{display:flex;gap:4px;margin-bottom:16px}
+.tab{padding:7px 18px;border-radius:22px;font-size:13px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--g);transition:all .15s}
+.tab.active{background:#fff;color:#000}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:60px 0;text-align:center;color:var(--g)}
+.empty-icon{font-size:52px;margin-bottom:14px}
+.empty-state h3{font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
+.empty-state p{font-size:13px;line-height:1.7;margin-bottom:18px}
+.empty-cta{padding:10px 24px;background:var(--green);color:#000;border:none;border-radius:22px;font-weight:700;font-family:inherit;font-size:14px;cursor:pointer}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:10px;font-weight:700;color:var(--d);text-transform:uppercase;letter-spacing:1px;padding:7px 14px;border-bottom:1px solid var(--border)}
+thead th:first-child{text-align:center;width:44px}
+thead th.r{text-align:right;width:64px}
+thead th.c{text-align:center;width:64px}
+.tr{cursor:pointer;transition:background .1s}
+.tr:hover{background:var(--bg3)}
+.tr.on{background:rgba(29,185,84,.13)}
+.tr td{padding:8px 14px}
+.tr td:first-child{text-align:center}
+.tn{font-size:13px;color:var(--g)}
+.tr.on .tn{display:none}
+.bars{display:none;align-items:flex-end;gap:2px;height:14px;justify-content:center}
+.tr.on .bars{display:flex}
+.bar{width:3px;background:var(--green);border-radius:1px;animation:bb .8s ease-in-out infinite alternate}
+.bar:nth-child(2){animation-delay:.2s}.bar:nth-child(3){animation-delay:.4s}
+@keyframes bb{0%{height:3px}100%{height:13px}}
+.ti{display:flex;align-items:center;gap:11px}
+.ta{width:38px;height:38px;border-radius:4px;background:var(--bg4);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ta img{width:100%;height:100%;object-fit:cover}
+.tt{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.tr.on .tt{color:var(--green)}
+.tar{font-size:12px;color:var(--g);margin-top:1px}
+.talb{font-size:12px;color:var(--g);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdur{font-size:12px;color:var(--g);text-align:right}
+.hbtn{background:none;border:none;cursor:pointer;color:var(--d);padding:4px;border-radius:50%;transition:color .15s}
+.hbtn:hover{color:#fff}
+.hbtn.on{color:var(--green)}
+.hbtn svg{width:15px;height:15px;fill:currentColor;display:block}
+.add-row{display:flex;align-items:center;gap:12px;padding:12px 28px;cursor:pointer;color:var(--g);font-size:14px;font-weight:500;border-top:1px solid var(--border);margin-top:6px;transition:all .15s}
+.add-row:hover{color:#fff;background:var(--bg3)}
+.add-row svg{width:16px;height:16px;fill:currentColor}
+
+/* PLAYER */
+#player{grid-area:player;background:#0c0c12;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;padding:0 22px;gap:12px}
+.pt{display:flex;align-items:center;gap:12px;min-width:0}
+.pa{width:54px;height:54px;border-radius:6px;background:var(--bg4);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.pa img{width:100%;height:100%;object-fit:cover}
+.ptitle{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.partist{font-size:12px;color:var(--g);margin-top:1px}
+.ph{background:none;border:none;cursor:pointer;color:var(--d);padding:4px;flex-shrink:0;transition:color .15s}
+.ph:hover{color:#fff}
+.ph.on{color:var(--green)}
+.ph svg{width:17px;height:17px;fill:currentColor;display:block}
+.pc{display:flex;flex-direction:column;align-items:center;gap:8px}
+.cbtns{display:flex;align-items:center;gap:18px}
+.cb{background:none;border:none;cursor:pointer;color:var(--g);padding:4px;display:flex;align-items:center;position:relative;transition:color .15s}
+.cb:hover{color:#fff}
+.cb svg{width:18px;height:18px;fill:currentColor}
+.cb.on{color:var(--green)}
+.cb.on::after{content:'';display:block;width:4px;height:4px;background:var(--green);border-radius:50%;position:absolute;bottom:-4px;left:50%;transform:translateX(-50%)}
+.pbtn{width:36px;height:36px;background:#fff;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.pbtn:hover{transform:scale(1.06)}
+.pbtn svg{width:16px;height:16px;fill:#000}
+.prog{display:flex;align-items:center;gap:9px;width:100%}
+.tlbl{font-size:11px;color:var(--d);min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+.pbar{flex:1;height:4px;background:var(--bg4);border-radius:2px;cursor:pointer;position:relative}
+.pfill{height:100%;background:#fff;border-radius:2px;pointer-events:none;transition:background .15s}
+.pbar:hover .pfill{background:var(--green)}
+.pr{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.vbar{width:80px;height:4px;background:var(--bg4);border-radius:2px;cursor:pointer}
+.vfill{height:100%;background:#fff;border-radius:2px;pointer-events:none;transition:background .15s}
+.vbar:hover .vfill{background:var(--green)}
+
+/* MODALS */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:100;display:none;align-items:center;justify-content:center}
+.ov.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:28px;width:460px;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:19px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--g);margin-bottom:18px;line-height:1.6}
+.modal-sub code{background:var(--bg4);padding:2px 6px;border-radius:4px;font-size:11px}
+.dz{border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px}
+.dz:hover,.dz.over{border-color:var(--green);background:rgba(29,185,84,.1)}
+.dz-icon{font-size:34px;margin-bottom:10px}
+.dz p{font-size:13px;color:var(--g);line-height:1.6}
+.dz strong{color:#fff}
+.csv-result{background:rgba(29,185,84,.13);border:1px solid var(--green);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--green);margin-top:8px;display:none}
+.csv-result.show{display:block}
+.macts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.btn-p{background:var(--green);color:#000;border:none;border-radius:22px;padding:9px 22px;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer}
+.btn-s{background:transparent;color:#fff;border:1px solid var(--border);border-radius:22px;padding:9px 22px;font-weight:600;font-family:inherit;font-size:13px;cursor:pointer}
+.fg{margin-bottom:14px}
+.fl{font-size:11px;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 13px;color:#fff;font-family:inherit;font-size:14px;outline:none;transition:border-color .15s}
+.fi:focus{border-color:var(--green)}
+.fi::placeholder{color:var(--d)}
+
+/* TOAST */
+#toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:999;white-space:nowrap;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#yt-frame{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div id="yt-frame"></div>
+<div id="toast"></div>
+
+<!-- SIDEBAR -->
+<nav id="side">
+  <div class="logo">
+    <div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+    <span class="logo-text">Sonora</span>
+  </div>
+  <div class="nav-item active" onclick="setView('all')">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Tutti i brani
+  </div>
+  <div class="nav-item" onclick="setView('liked')">
+    <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Preferiti ❤️
+  </div>
+  <div class="nav-item" onclick="openAdd()">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Aggiungi brano
+  </div>
+  <div class="sep"></div>
+  <div class="lib-hdr">
+    <span class="lib-label">Libreria (<span id="lib-count">0</span>)</span>
+    <button class="csv-btn" onclick="openImport()">
+      <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18l-7 7h4v4h6v-4h4l-7-7z"/></svg>Spotify CSV
+    </button>
+  </div>
+  <div id="lib-list"><p class="lib-empty">Nessun brano ancora</p></div>
+</nav>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="top-bar">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input id="q" type="text" placeholder="Filtra nella libreria…" oninput="render()">
+    </div>
+    <span class="track-count" id="cnt">0 brani</span>
+  </div>
+  <div class="content">
+    <div class="tabs">
+      <div class="tab active" id="tab-all" onclick="setView('all')">Tutti</div>
+      <div class="tab" id="tab-liked" onclick="setView('liked')">❤️ Preferiti</div>
+    </div>
+    <div id="tbl"></div>
+  </div>
+  <div class="add-row" onclick="openAdd()">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Aggiungi un nuovo brano…
+  </div>
+</main>
+
+<!-- PLAYER -->
+<footer id="player">
+  <div class="pt">
+    <div class="pa" id="pa"><span>🎵</span></div>
+    <div style="min-width:0">
+      <div class="ptitle" id="ptitle">Nessun brano</div>
+      <div class="partist" id="partist">—</div>
+    </div>
+    <button class="ph" id="ph" onclick="toggleCurLike()">
+      <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    </button>
+  </div>
+  <div class="pc">
+    <div class="cbtns">
+      <button class="cb" id="shuf" onclick="toggleShuffle()" title="Shuffle">
+        <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+      </button>
+      <button class="cb" onclick="prev()" title="Precedente">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button class="pbtn" id="pbtn" onclick="togglePlay()">
+        <svg id="picon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="cb" onclick="next()" title="Successivo">
+        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+      </button>
+      <button class="cb" id="rep" onclick="toggleRepeat()" title="Ripeti">
+        <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+      </button>
+    </div>
+    <div class="prog">
+      <span class="tlbl" id="ct">0:00</span>
+      <div class="pbar" id="pbar" onclick="seek(event)">
+        <div class="pfill" id="pfill" style="width:0%"></div>
+      </div>
+      <span class="tlbl" id="tt">0:00</span>
+    </div>
+  </div>
+  <div class="pr">
+    <svg style="width:17px;height:17px;fill:var(--g);flex-shrink:0" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+    <div class="vbar" id="vbar" onclick="setVol(event)">
+      <div class="vfill" id="vfill" style="width:70%"></div>
+    </div>
+  </div>
+</footer>
+
+<!-- IMPORT MODAL -->
+<div class="ov" id="importOv" onclick="if(event.target===this)closeModal('importOv')">
+  <div class="modal">
+    <div class="modal-title">📥 Importa da Spotify</div>
+    <div class="modal-sub">
+      Vai su <strong>exportify.net</strong>, accedi con Spotify ed esporta la playlist come CSV.<br>
+      Colonne necessarie: <code>Track Name, Artist Name(s), Album Name, Duration (ms)</code>
+    </div>
+    <div class="dz" id="dz" onclick="document.getElementById('csvFile').click()"
+      ondragover="event.preventDefault();this.classList.add('over')"
+      ondragleave="this.classList.remove('over')"
+      ondrop="event.preventDefault();this.classList.remove('over');handleDrop(event)">
+      <div class="dz-icon">📄</div>
+      <p><strong>Clicca</strong> o trascina il file CSV qui</p>
+    </div>
+    <input type="file" id="csvFile" accept=".csv,.txt" style="display:none" onchange="handleCSV(this)">
+    <div class="csv-result" id="csvResult"></div>
+    <div class="macts">
+      <button class="btn-s" onclick="closeModal('importOv')">Annulla</button>
+      <button class="btn-p" id="importBtn" onclick="doImport()" style="display:none">✅ Importa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="ov" id="addOv" onclick="if(event.target===this)closeModal('addOv')">
+  <div class="modal">
+    <div class="modal-title">➕ Aggiungi brano</div>
+    <div class="modal-sub">Incolla l'URL del video YouTube (o YouTube Music). L'audio viene riprodotto in background.</div>
+    <div class="fg"><label class="fl">Titolo *</label><input class="fi" id="aTitle" placeholder="es. Bohemian Rhapsody"></div>
+    <div class="fg"><label class="fl">Artista *</label><input class="fi" id="aArtist" placeholder="es. Queen"></div>
+    <div class="fg"><label class="fl">Album</label><input class="fi" id="aAlbum" placeholder="es. A Night at the Opera"></div>
+    <div class="fg"><label class="fl">URL YouTube *</label><input class="fi" id="aUrl" placeholder="https://www.youtube.com/watch?v=..."></div>
+    <div class="fg"><label class="fl">Emoji copertina</label><input class="fi" id="aEmoji" placeholder="🎸"></div>
+    <div class="macts">
+      <button class="btn-s" onclick="closeModal('addOv')">Annulla</button>
+      <button class="btn-p" onclick="doAdd()">Aggiungi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+var tracks = JSON.parse(localStorage.getItem('s_tracks') || 'null') || [
+  {id:1,title:"Blinding Lights",artist:"The Weeknd",album:"After Hours",duration:200040,url:"https://www.youtube.com/watch?v=4NRXx6U8ABQ",liked:false,emoji:"🌆"},
+  {id:2,title:"Levitating",artist:"Dua Lipa",album:"Future Nostalgia",duration:203064,url:"https://www.youtube.com/watch?v=TUVcZfQe-Kw",liked:false,emoji:"🪐"},
+  {id:3,title:"Stay With Me",artist:"Sam Smith",album:"In the Lonely Hour",duration:172720,url:"https://www.youtube.com/watch?v=pB-5XG-DbAA",liked:false,emoji:"🕯️"}
+];
+var cur=-1, playing=false, shuffle=false, repeat=0, vol=70, view='all';
+var yt=null, ytReady=false, tick=null, toastT=null;
+var csvPending=[];
+
+// ── YOUTUBE ──
+window.onYouTubeIframeAPIReady=function(){
+  ytReady=true;
+  yt=new YT.Player('yt-frame',{
+    height:'1',width:'1',
+    playerVars:{autoplay:0,controls:0,disablekb:1,fs:0,iv_load_policy:3,modestbranding:1,rel:0},
+    events:{
+      onReady:function(e){e.target.setVolume(vol);},
+      onStateChange:function(e){
+        if(e.data===YT.PlayerState.PLAYING){playing=true;updPlay();startTick();}
+        if(e.data===YT.PlayerState.PAUSED){playing=false;updPlay();stopTick();}
+        if(e.data===YT.PlayerState.ENDED){onEnd();}
+      }
+    }
+  });
+};
+(function(){var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);})();
+
+function getVid(url){if(!url)return null;var m=url.match(/(?:v=|youtu\.be\/|embed\/|music\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/);return m?m[1]:null;}
+function thumb(id){return'https://img.youtube.com/vi/'+id+'/mqdefault.jpg';}
+
+// ── PLAYBACK ──
+function playAt(i){
+  if(i<0||i>=tracks.length)return;
+  cur=i;
+  var t=tracks[i];
+  var vid=getVid(t.url);
+  // update player UI
+  var pa=document.getElementById('pa');
+  if(vid){pa.innerHTML='<img src="'+thumb(vid)+'" onerror="this.style.display=\'none\'">';}
+  else{pa.innerHTML='<span>'+(t.emoji||'🎵')+'</span>';}
+  document.getElementById('ptitle').textContent=t.title;
+  document.getElementById('partist').textContent=t.artist;
+  document.getElementById('ph').classList.toggle('on',!!t.liked);
+  if(!vid){toast('⚠️ URL YouTube non valido per questo brano');render();return;}
+  var go=function(){if(yt&&ytReady){yt.loadVideoById(vid);playing=true;updPlay();}else setTimeout(go,400);};
+  go();
+  render();renderLib();
+}
+
+function togglePlay(){if(cur<0){if(tracks.length)playAt(0);return;}if(!yt)return;playing?yt.pauseVideo():yt.playVideo();}
+
+function prev(){
+  if(yt&&yt.getCurrentTime&&yt.getCurrentTime()>3){yt.seekTo(0);return;}
+  playAt(cur>0?cur-1:tracks.length-1);
+}
+
+function next(){
+  shuffle?playAt(Math.floor(Math.random()*tracks.length)):playAt(cur<tracks.length-1?cur+1:0);
+}
+
+function onEnd(){
+  if(repeat===2){yt.seekTo(0);yt.playVideo();}
+  else if(repeat===1||shuffle){next();}
+  else if(cur<tracks.length-1){next();}
+  else{playing=false;updPlay();stopTick();}
+}
+
+function toggleShuffle(){shuffle=!shuffle;document.getElementById('shuf').classList.toggle('on',shuffle);toast(shuffle?'🔀 Shuffle ON':'🔀 Shuffle OFF');}
+function toggleRepeat(){repeat=(repeat+1)%3;document.getElementById('rep').classList.toggle('on',repeat>0);toast(['🔁 Ripeti: off','🔁 Ripeti tutto','🔂 Ripeti brano'][repeat]);}
+function toggleCurLike(){if(cur<0)return;tracks[cur].liked=!tracks[cur].liked;save();document.getElementById('ph').classList.toggle('on',tracks[cur].liked);render();toast(tracks[cur].liked?'💚 Aggiunto ai preferiti':'🤍 Rimosso');}
+function toggleLike(i,e){if(e)e.stopPropagation();tracks[i].liked=!tracks[i].liked;save();if(cur===i)document.getElementById('ph').classList.toggle('on',tracks[i].liked);render();toast(tracks[i].liked?'💚 Preferiti':'🤍 Rimosso');}
+
+// ── PROGRESS ──
+function startTick(){stopTick();tick=setInterval(function(){if(!yt||!yt.getCurrentTime)return;var c=yt.getCurrentTime()||0,d=yt.getDuration()||0;document.getElementById('ct').textContent=fmt(c*1000);document.getElementById('tt').textContent=fmt(d*1000);document.getElementById('pfill').style.width=(d>0?c/d*100:0)+'%';},500);}
+function stopTick(){if(tick){clearInterval(tick);tick=null;}}
+function seek(e){var r=document.getElementById('pbar').getBoundingClientRect();var p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));if(yt&&yt.getDuration)yt.seekTo(p*yt.getDuration(),true);}
+function setVol(e){var r=document.getElementById('vbar').getBoundingClientRect();vol=Math.round(Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)));document.getElementById('vfill').style.width=vol+'%';if(yt)yt.setVolume(vol);}
+
+// ── RENDER ──
+function filtered(){
+  var q=document.getElementById('q').value.toLowerCase();
+  var list=view==='liked'?tracks.filter(function(t){return t.liked;}):tracks.slice();
+  if(q)list=list.filter(function(t){return(t.title+t.artist+(t.album||'')).toLowerCase().includes(q);});
+  return list;
+}
+
+function render(){
+  var list=filtered();
+  document.getElementById('cnt').textContent=list.length+' bran'+(list.length===1?'o':'i');
+  var tbl=document.getElementById('tbl');
+  if(!list.length){
+    tbl.innerHTML='<div class="empty-state"><div class="empty-icon">'+(view==='liked'?'💔':'🎵')+'</div><h3>'+(view==='liked'?'Nessun preferito':'Libreria vuota')+'</h3><p>'+(view==='liked'?'Clicca ❤️ su un brano.':'Aggiungi brani con l\'URL YouTube o importa un CSV da Spotify.')+'</p>'+(view==='all'?'<button class="empty-cta" onclick="openAdd()">+ Aggiungi brano</button>':'')+'</div>';
+    return;
+  }
+  var curT=cur>=0&&cur<tracks.length?tracks[cur]:null;
+  var rows=list.map(function(t,i){
+    var gi=tracks.indexOf(t);
+    var on=curT&&curT.id===t.id;
+    var vid=getVid(t.url);
+    return'<tr class="tr'+(on?' on':'')+'" ondblclick="playAt('+gi+')">'
+      +'<td><span class="tn">'+(i+1)+'</span><span class="bars"><span class="bar"></span><span class="bar"></span><span class="bar"></span></span></td>'
+      +'<td><div class="ti"><div class="ta">'+(vid?'<img src="'+thumb(vid)+'" onerror="this.style.display=\'none\'">':'')+'<span style="position:absolute;z-index:0">'+(t.emoji||'🎵')+'</span></div><div><div class="tt">'+esc(t.title)+'</div><div class="tar">'+esc(t.artist)+'</div></div></div></td>'
+      +'<td><div class="talb">'+esc(t.album||'—')+'</div></td>'
+      +'<td class="r"><span class="tdur">'+fmt(t.duration)+'</span></td>'
+      +'<td class="c"><button class="hbtn'+(t.liked?' on':'')+'" onclick="toggleLike('+gi+',event)"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button></td>'
+      +'</tr>';
+  }).join('');
+  tbl.innerHTML='<table><thead><tr><th>#</th><th>Titolo</th><th>Album</th><th class="r">⏱</th><th class="c">♥</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function renderLib(){
+  var el=document.getElementById('lib-list');
+  document.getElementById('lib-count').textContent=tracks.length;
+  if(!tracks.length){el.innerHTML='<p class="lib-empty">Nessun brano</p>';return;}
+  el.innerHTML=tracks.map(function(t,i){
+    var vid=getVid(t.url);
+    var on=cur===i;
+    return'<div class="lib-item'+(on?' active':'')+'" onclick="playAt('+i+')">'
+      +'<div class="lib-thumb">'+(vid?'<img src="'+thumb(vid)+'" onerror="this.style.display=\'none\'">':'')+'<span style="position:absolute">'+esc(t.emoji||'🎵')+'</span></div>'
+      +'<div style="min-width:0"><div class="lib-name" style="color:'+(on?'#1db954':'#fff')+'">'+esc(t.title)+'</div><div class="lib-artist">'+esc(t.artist)+'</div></div>'
+      +'</div>';
+  }).join('');
+}
+
+function setView(v){
+  view=v;
+  document.getElementById('tab-all').classList.toggle('active',v==='all');
+  document.getElementById('tab-liked').classList.toggle('active',v==='liked');
+  document.querySelectorAll('.nav-item')[0].classList.toggle('active',v==='all');
+  document.querySelectorAll('.nav-item')[1].classList.toggle('active',v==='liked');
+  render();
+}
+
+function updPlay(){
+  document.getElementById('picon').innerHTML=playing?'<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>':'<path d="M8 5v14l11-7z"/>';
+}
+
+// ── CSV ──
+function handleDrop(e){var f=e.dataTransfer.files[0];if(f)readCSV(f);}
+function handleCSV(inp){if(inp.files[0])readCSV(inp.files[0]);}
+function readCSV(f){var r=new FileReader();r.onload=function(e){parseCSV(e.target.result);};r.readAsText(f,'UTF-8');}
+
+function parseCSVRow(line){var res=[],inQ=false,cur='';for(var i=0;i<line.length;i++){var ch=line[i];if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}else if(ch===','&&!inQ){res.push(cur);cur='';}else cur+=ch;}res.push(cur);return res;}
+
+function parseCSV(txt){
+  var lines=txt.split('\n').filter(function(l){return l.trim();});
+  if(lines.length<2){toast('⚠️ CSV non valido');return;}
+  var hdrs=parseCSVRow(lines[0]).map(function(h){return h.toLowerCase().trim();});
+  function fc(){for(var i=0;i<arguments.length;i++){var x=hdrs.indexOf(arguments[i]);if(x>=0)return x;}return -1;}
+  var ci={title:fc('track name','title','song','name'),artist:fc('artist name(s)','artist','artists','artist name'),album:fc('album name','album'),dur:fc('duration (ms)','duration_ms','duration')};
+  if(ci.title<0||ci.artist<0){toast('⚠️ Colonne "Track Name" e "Artist Name" non trovate');return;}
+  csvPending=[];
+  for(var i=1;i<lines.length;i++){
+    var c=parseCSVRow(lines[i]);
+    var t=(c[ci.title]||'').trim(),a=(c[ci.artist]||'').trim();
+    if(!t||!a)continue;
+    csvPending.push({id:Date.now()+Math.random()+i,title:t,artist:a,album:ci.album>=0?(c[ci.album]||'').trim():'',duration:ci.dur>=0?parseInt(c[ci.dur])||0:0,url:'',liked:false,emoji:'🎵'});
+  }
+  var res=document.getElementById('csvResult');
+  res.textContent='✅ '+csvPending.length+' brani trovati: '+csvPending.slice(0,3).map(function(x){return x.title;}).join(', ')+(csvPending.length>3?'…':'');
+  res.classList.add('show');
+  document.getElementById('importBtn').style.display='inline-flex';
+}
+
+function doImport(){
+  var added=0;
+  csvPending.forEach(function(p){if(!tracks.find(function(e){return e.title===p.title&&e.artist===p.artist;})){tracks.push(p);added++;}});
+  save();render();renderLib();closeModal('importOv');
+  toast('✅ '+added+' brani importati! Aggiorna l\'URL YouTube per ciascuno.');
+  csvPending=[];
+}
+
+// ── ADD TRACK ──
+function doAdd(){
+  var t=document.getElementById('aTitle').value.trim();
+  var a=document.getElementById('aArtist').value.trim();
+  var alb=document.getElementById('aAlbum').value.trim();
+  var url=document.getElementById('aUrl').value.trim();
+  var em=document.getElementById('aEmoji').value.trim();
+  if(!t||!a){toast('⚠️ Titolo e artista sono obbligatori');return;}
+  if(url&&!getVid(url)){toast('⚠️ URL YouTube non riconosciuto');return;}
+  tracks.push({id:Date.now()+Math.random(),title:t,artist:a,album:alb,url:url,liked:false,emoji:em||'🎵',duration:0});
+  save();render();renderLib();closeModal('addOv');
+  toast('✅ "'+t+'" aggiunto!');
+}
+
+// ── MODALS ──
+function openImport(){document.getElementById('csvResult').classList.remove('show');document.getElementById('importBtn').style.display='none';document.getElementById('csvFile').value='';csvPending=[];document.getElementById('importOv').classList.add('open');}
+function openAdd(){['aTitle','aArtist','aAlbum','aUrl','aEmoji'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('addOv').classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── UTILS ──
+function save(){localStorage.setItem('s_tracks',JSON.stringify(tracks));}
+function fmt(ms){if(!ms||isNaN(ms))return'0:00';var s=Math.floor(ms/1000),m=Math.floor(s/60);return m+':'+(s%60).toString().padStart(2,'0');}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toast(msg){if(toastT)clearTimeout(toastT);var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');toastT=setTimeout(function(){t.classList.remove('show');},2600);}
+
+// keyboard
+document.addEventListener('keydown',function(e){if(e.target.tagName==='INPUT')return;if(e.code==='Space'){e.preventDefault();togglePlay();}if(e.code==='ArrowRight'){e.preventDefault();next();}if(e.code==='ArrowLeft'){e.preventDefault();prev();}});
+
+// ── INIT ──
+render();renderLib();
+</script>
+</body>
+</html>
